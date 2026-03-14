@@ -6,6 +6,33 @@ from data.storage import get_users, get_messages_by_user
 from analysis.analyzer import analyze_user_messages
 
 
+def format_profile(username, profile):
+    """
+    Converts Gemini JSON output into a readable Telegram message.
+    """
+
+    if "error" in profile:
+        return f"⚠️ Error analyzing user:\n{profile['error']}"
+
+    attributes = profile.get("attributes", {})
+
+    message = f"👤 Profile for {username}\n\n"
+
+    for key, values in attributes.items():
+        if not values:
+            continue
+
+        title = key.replace("_", " ").title()
+        message += f"📌 {title}\n"
+
+        for v in values:
+            message += f"• {v}\n"
+
+        message += "\n"
+
+    return message.strip()
+
+
 async def people(update: Update, context: ContextTypes.DEFAULT_TYPE):
     users = get_users()
 
@@ -32,9 +59,10 @@ async def user_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     profile = analyze_user_messages(username, messages)
 
-    profile_text = json.dumps(profile, indent=2, ensure_ascii=False)
+    # convert JSON profile into readable text
+    formatted_profile = format_profile(username, profile)
 
-    await query.edit_message_text(f"Profile for {username}:\n{profile_text}")
+    await query.edit_message_text(formatted_profile)
 
 
 def register_handlers(app):
