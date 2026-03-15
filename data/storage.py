@@ -1,38 +1,91 @@
-import json
-import os
+import sqlite3
 
-DATA_FILE = "messages.json"
-
-
-def load_data():
-    if not os.path.exists(DATA_FILE):
-        return {}
-
-    with open(DATA_FILE, "r") as f:
-        return json.load(f)
+DB_NAME = "chat_history.db"
 
 
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+def init_db():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            text TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    conn.commit()
+    conn.close()
 
 
-def save_message(username, message):
-    data = load_data()
+def save_message(username, text):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
 
-    if username not in data:
-        data[username] = []
+    cursor.execute(
+        "INSERT INTO messages (username, text) VALUES (?, ?)",
+        (username, text)
+    )
 
-    data[username].append(message)
+    conn.commit()
 
-    save_data(data)
+    cursor.execute("SELECT COUNT(*) FROM messages")
+    count = cursor.fetchone()[0]
+
+    conn.close()
+
+    return count
 
 
 def get_users():
-    data = load_data()
-    return list(data.keys())
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT DISTINCT username FROM messages")
+
+    users = [row[0] for row in cursor.fetchall()]
+
+    conn.close()
+
+    return users
 
 
 def get_messages_by_user(username):
-    data = load_data()
-    return data.get(username, [])
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT text FROM messages WHERE username=?",
+        (username,)
+    )
+
+    messages = [row[0] for row in cursor.fetchall()]
+
+    conn.close()
+
+    return messages
+
+
+def get_last_messages(limit=20):
+    """
+    Returns the latest N messages from the database
+    Used for batch analysis
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT username, text FROM messages ORDER BY id DESC LIMIT ?",
+        (limit,)
+    )
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    # reverse so conversation order is correct
+    rows.reverse()
+
+    return rows

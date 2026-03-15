@@ -78,3 +78,33 @@ Messages:
             "error": "Failed to parse Gemini response",
             "raw": text if 'text' in locals() else response.text
         }
+    
+
+def analyze_conversation(messages):
+
+    conversation = ""
+
+    for user, text in messages:
+        conversation += f"{user}: {text}\n"
+
+    prompt = f"""
+You are analyzing a conversation to infer facts about people.
+
+IMPORTANT RULES:
+- Do not assume someone likes something unless they explicitly say they like it.
+- If someone answers a question like "what food do you hate?" and says "lasagna",
+  that means they DISLIKE lasagna.
+- Use conversation context to understand questions and answers.
+- Never infer the opposite meaning.
+
+Conversation:
+{conversation}
+
+Create a profile for each participant.
+
+Return ONLY valid JSON.
+Do not use markdown formatting.
+Only include attributes that are strongly supported by the conversation.
+"""
+
+    # your existing Gemini request code here

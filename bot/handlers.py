@@ -7,18 +7,17 @@ from analysis.analyzer import analyze_user_messages
 
 
 def format_profile(username, profile):
-    """
-    Converts Gemini JSON output into a readable Telegram message.
-    """
-
     if "error" in profile:
         return f"⚠️ Error analyzing user:\n{profile['error']}"
 
-    attributes = profile.get("attributes", {})
-
     message = f"👤 Profile for {username}\n\n"
 
-    for key, values in attributes.items():
+    for key, values in profile.items():
+
+        # skip simple fields like name
+        if isinstance(values, str):
+            continue
+
         if not values:
             continue
 
